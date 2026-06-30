@@ -28,3 +28,6 @@ refresh_rate_ext                          u:object_r:refresh_rate_manager_servic
 # Linearmotor Vibrator
 linearmotor                               u:object_r:linearmotor_vibrator_service:s0
 
+
+# Obscura
+obscura u:object_r:obscura_service:s0

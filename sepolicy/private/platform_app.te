@@ -16,3 +16,6 @@ allow platform_app power_insight_service:service_manager find;
 
 # Luminous
 set_prop(platform_app, penguin_luminous_prop)
+
+# Obscura
+allow platform_app obscura_service:service_manager find;

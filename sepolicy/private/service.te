@@ -25,3 +25,6 @@ type refresh_rate_manager_service, system_api_service, system_server_service, se
 # Linearmotor Vibrator
 type linearmotor_vibrator_service, system_api_service, system_server_service, service_manager_type;
 
+
+# Obscura
+type obscura_service, system_api_service, system_server_service, service_manager_type;
