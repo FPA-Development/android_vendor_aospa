@@ -170,6 +170,13 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
     vendor.aospa.power-service
 
+# UDFPS icon and animation packs
+ifeq ($(TARGET_HAS_UDFPS), true)
+PRODUCT_PACKAGES += \
+    UdfpsAnimations \
+    UdfpsIcons
+endif
+
 # Keyboard: the PenguinOS LatinIME instead of Gboard
 ifeq ($(TARGET_USES_PENGUIN_LATINIME), true)
 PRODUCT_PACKAGES += \
