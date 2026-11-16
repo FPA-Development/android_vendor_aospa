@@ -36,7 +36,7 @@
   <project path="kernel_platform/msm-kernel" name="Dodge-CLO/android_kernel_oneplus_sm8750" remote="github-ssh" revision="celerity">
     <linkfile dest="kernel_platform/build_with_bazel.py" src="build_with_bazel.py" />
   </project>
-  <project path="kernel_platform/sm8750-devicetrees" name="Dodge-CLO/android_kernel_oneplus_sm8750-devicetrees" remote="github-ssh" revision="celerity">
+  <project path="kernel_platform/sm8750-devicetrees" name="Dodge-CLO/android_kernel_oneplus_sm8750-devicetrees" remote="github-ssh" revision="celerity-6.12">
     <linkfile dest="vendor/qcom/proprietary/audio-devicetree" src="qcom/audio" />
     <linkfile dest="vendor/qcom/proprietary/bt-devicetree" src="qcom/bt" />
     <linkfile dest="vendor/qcom/proprietary/camera-devicetree" src="qcom/camera" />
