@@ -3,3 +3,14 @@ genfscon proc /sys/vm/dirty_background_bytes u:object_r:proc_dirty:s0
 genfscon proc /sys/vm/dirty_bytes u:object_r:proc_dirty:s0
 genfscon proc /sys/vm/dirty_ratio u:object_r:proc_dirty:s0
 genfscon proc /sys/vm/dirtytime_expire_seconds u:object_r:proc_dirty:s0
+
+# Penguin flight recorder: warm restarts and lockup panics while it is on
+genfscon sysfs /kernel/reboot/mode u:object_r:sysfs_penguin_reboot_mode:s0
+genfscon proc /sys/kernel/soft_watchdog u:object_r:proc_penguin_lockup:s0
+genfscon proc /sys/kernel/softlockup_panic u:object_r:proc_penguin_lockup:s0
+genfscon proc /sys/kernel/hardlockup_panic u:object_r:proc_penguin_lockup:s0
+genfscon proc /bootloader_log u:object_r:proc_penguin_bootloader_log:s0
+# and a minidump of the crash saved to storage, as this phone always restarts with a hard reset
+genfscon sysfs /kernel/dload/dload_mode u:object_r:sysfs_penguin_dload:s0
+genfscon sysfs /kernel/dload/emmc_dload u:object_r:sysfs_penguin_dload:s0
+genfscon sysfs /module/qcom_dload_mode/parameters/download_mode u:object_r:sysfs_penguin_dload:s0

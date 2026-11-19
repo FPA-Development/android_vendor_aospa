@@ -1,0 +1,18 @@
+// Penguin flight recorder: keeps the kernel log, system crash logs and resource use of the
+// current and previous session for bug reports. Switched on from Laboratory > System.
+
+rust_binary {
+    name: "penguin_flightlog",
+    srcs: ["src/main.rs"],
+    rustlibs: ["liblibc"],
+    system_ext_specific: true,
+    init_rc: ["penguin_flightlog.rc"],
+}
+
+rust_test {
+    name: "penguin_flightlog_test",
+    srcs: ["src/main.rs"],
+    rustlibs: ["liblibc"],
+    host_supported: true,
+    test_suites: ["general-tests"],
+}

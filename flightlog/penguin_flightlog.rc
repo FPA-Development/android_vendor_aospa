@@ -1,0 +1,63 @@
+# Penguin flight recorder, switched on from Laboratory > System (persist.sys.penguin.flightlog).
+# Logs live in credential-encrypted storage, so the recorder starts once the user has unlocked.
+
+service penguin_flightlog /system_ext/bin/penguin_flightlog
+    user system
+    group system readproc log
+    disabled
+    capabilities SYSLOG
+    task_profiles ServiceCapacityLow
+
+# Early in every boot, before the user unlocks: saves the kernel's crash records (pstore, copied in
+# by init, as only a few system domains may read it) and the kernel log from the start of the
+# boot, with the PMIC power-on and reset reason.
+service penguin_flightlog_boot /system_ext/bin/penguin_flightlog --boot-capture
+    user system
+    group system log
+    disabled
+    oneshot
+    capabilities SYSLOG
+    task_profiles ServiceCapacityLow
+
+# While switched on, a crash should leave a kernel log behind: restart warm so pstore survives
+# the reset, and panic on a lockup instead of hanging until the hardware watchdog resets the
+# phone with no log at all (the kernel command line has nosoftlockup). Where the bootloader
+# restarts with a hard reset anyway, which clears RAM and pstore with it, have it save a
+# minidump to the rawdump partition instead; the next boot capture files its kernel console.
+# The bootloader resets the dload settings at every boot.
+on boot && property:persist.sys.penguin.flightlog=1
+    mkdir /data/misc/penguin_flightlog 0700 system system
+    mkdir /data/misc/penguin_flightlog/pstore 0700 system system
+    copy /sys/fs/pstore/console-ramoops-0 /data/misc/penguin_flightlog/pstore/console-ramoops-0
+    chown system system /data/misc/penguin_flightlog/pstore/console-ramoops-0
+    start penguin_flightlog_boot
+    write /sys/module/qcom_dload_mode/parameters/download_mode 1
+    write /sys/kernel/dload/dload_mode mini
+    write /sys/kernel/dload/emmc_dload 1
+    write /sys/kernel/reboot/mode warm
+    write /proc/sys/kernel/soft_watchdog 1
+    write /proc/sys/kernel/softlockup_panic 1
+    write /proc/sys/kernel/hardlockup_panic 1
+
+on property:sys.user.0.ce_available=true && property:persist.sys.penguin.flightlog=1
+    mkdir /data/misc_ce/0/penguin_flightlog 0700 system system
+    mkdir /data/misc/penguin_flightlog 0700 system system
+    start penguin_flightlog
+    write /sys/module/qcom_dload_mode/parameters/download_mode 1
+    write /sys/kernel/dload/dload_mode mini
+    write /sys/kernel/dload/emmc_dload 1
+    write /sys/kernel/reboot/mode warm
+    write /proc/sys/kernel/soft_watchdog 1
+    write /proc/sys/kernel/softlockup_panic 1
+    write /proc/sys/kernel/hardlockup_panic 1
+
+# Turning it off deletes what was recorded, 15 minutes later, unless it is turned back on before.
+on property:persist.sys.penguin.flightlog=0 && property:sys.user.0.ce_available=true
+    stop penguin_flightlog
+    write /sys/kernel/dload/emmc_dload 0
+    write /sys/module/qcom_dload_mode/parameters/download_mode 0
+    write /sys/kernel/reboot/mode cold
+    write /proc/sys/kernel/softlockup_panic 0
+    write /proc/sys/kernel/hardlockup_panic 0
+    write /proc/sys/kernel/soft_watchdog 0
+    exec_background - system system -- /system_ext/bin/penguin_flightlog --disable

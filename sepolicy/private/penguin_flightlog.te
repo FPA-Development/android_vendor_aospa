@@ -1,0 +1,56 @@
+# Penguin flight recorder: kernel log, system crash logs and resource snapshots for bug reports
+type penguin_flightlog, domain, coredomain, mlstrustedsubject;
+type penguin_flightlog_exec, system_file_type, exec_type, file_type;
+
+init_daemon_domain(penguin_flightlog)
+
+# Kernel log through syslog(2), as /dev/kmsg is not readable by the system user: a blocking read
+# of new messages (syslog_mod, CAP_SYSLOG), with polling the whole buffer as the fallback
+allow penguin_flightlog kernel:system { syslog_read syslog_mod };
+allow penguin_flightlog self:capability2 syslog;
+
+# System and crash logs through logcat
+allow penguin_flightlog logcat_exec:file rx_file_perms;
+read_logd(penguin_flightlog)
+
+# Its own logs in credential-encrypted storage
+allow penguin_flightlog system_data_file:dir search;
+allow penguin_flightlog penguin_flightlog_data_file:dir create_dir_perms;
+allow penguin_flightlog penguin_flightlog_data_file:file create_file_perms;
+
+# Resource snapshots: processes, threads, memory, pressure, zram, dma-bufs and thermal zones.
+# mlstrustedsubject (above) lets it into /proc/<pid> of apps, which carry MLS categories.
+r_dir_file(penguin_flightlog, domain)
+allow penguin_flightlog {
+    proc_uptime
+    proc_meminfo
+    proc_vmstat
+    proc_pressure_cpu
+    proc_pressure_io
+    proc_pressure_mem
+}:file r_file_perms;
+r_dir_file(penguin_flightlog, sysfs_thermal)
+r_dir_file(penguin_flightlog, sysfs_zram)
+r_dir_file(penguin_flightlog, sysfs_dmabuf_stats)
+allow penguin_flightlog sysfs:dir r_dir_perms;
+allow penguin_flightlog sysfs:lnk_file read;
+
+# Flags a session that ended without a shutdown, for the unexpected restart notification
+set_prop(penguin_flightlog, penguin_flightlog_prop)
+
+# Reading every process can hit ones that exit mid-read, and those it may not ptrace
+dontaudit penguin_flightlog domain:process ptrace;
+dontaudit penguin_flightlog self:global_capability_class_set { dac_override dac_read_search sys_ptrace };
+
+# Boot capture: what the kernel was armed with (pstore is copied in by init)
+allow penguin_flightlog {
+    sysfs_penguin_reboot_mode
+    proc_penguin_lockup
+    proc_penguin_bootloader_log
+}:file r_file_perms;
+
+# Boot capture: the kernel console from the bootloader's minidump of a crash (read only)
+allow penguin_flightlog sysfs_penguin_dload:file r_file_perms;
+allow penguin_flightlog block_device:dir search;
+allow penguin_flightlog block_device:lnk_file read;
+allow penguin_flightlog penguin_rawdump_block_device:blk_file r_file_perms;

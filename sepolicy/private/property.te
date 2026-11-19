@@ -7,3 +7,6 @@ system_public_prop(penguin_luminous_prop)
 
 # Custom version
 system_internal_prop(custom_version_prop)
+
+# Penguin flight recorder
+system_internal_prop(penguin_flightlog_prop)

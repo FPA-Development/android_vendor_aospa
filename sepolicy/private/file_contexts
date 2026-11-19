@@ -6,3 +6,11 @@
 
 # FS
 /system/bin/fsck\.ntfs                  u:object_r:fsck_exec:s0
+
+# Penguin flight recorder
+/system_ext/bin/penguin_flightlog       u:object_r:penguin_flightlog_exec:s0
+/data/misc_ce/[0-9]+/penguin_flightlog(/.*)?   u:object_r:penguin_flightlog_data_file:s0
+/data/misc/penguin_flightlog(/.*)?      u:object_r:penguin_flightlog_data_file:s0
+# Bootloader minidumps, read by the flight recorder (UFS phones; vendors label the eMMC path)
+/dev/block/by-name/rawdump      u:object_r:penguin_rawdump_block_device:s0
+/dev/block/platform/soc/[^/]+\.ufshc/by-name/rawdump  u:object_r:penguin_rawdump_block_device:s0

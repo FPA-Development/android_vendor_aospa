@@ -44,3 +44,6 @@ get_prop(system_server, penguin_luminous_prop)
 
 # Obscura
 add_service(system_server, obscura_service);
+
+# Penguin flight recorder: unexpected restart notification
+get_prop(system_server, penguin_flightlog_prop)

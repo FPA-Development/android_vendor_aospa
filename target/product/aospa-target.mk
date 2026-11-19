@@ -116,6 +116,10 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     PenguinLaboratory
 
+# Flight recorder for bug reports, switched on from Laboratory
+PRODUCT_PACKAGES += \
+    penguin_flightlog
+
 # SystemUI with PenguinOS's features
 PRODUCT_PACKAGES += \
     PenguinSystemUI

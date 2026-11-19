@@ -1,0 +1,9 @@
+# Penguin flight recorder: arms warm restarts and lockup panics while it is on
+allow init sysfs_penguin_reboot_mode:file w_file_perms;
+allow init proc_penguin_lockup:file w_file_perms;
+# and the minidump to storage after a crash
+allow init sysfs_penguin_dload:file w_file_perms;
+
+# Copies the kernel's crash records (pstore) into the flight recorder's storage early in boot
+allow init penguin_flightlog_data_file:dir create_dir_perms;
+allow init penguin_flightlog_data_file:file create_file_perms;

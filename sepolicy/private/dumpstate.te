@@ -1,0 +1,6 @@
+# Penguin flight recorder logs go into bug reports
+allow dumpstate penguin_flightlog_data_file:dir r_dir_perms;
+allow dumpstate penguin_flightlog_data_file:file r_file_perms;
+
+# The bootloader's log of this boot
+allow dumpstate proc_penguin_bootloader_log:file r_file_perms;

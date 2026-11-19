@@ -15,3 +15,6 @@ ro.aospa.version.minor                 u:object_r:custom_version_prop:s0
 persist.sys.spoof.                     u:object_r:custom_version_prop:s0
 persist.sys.pihooks.                   u:object_r:custom_version_prop:s0
 persist.sys.pixelprops.                u:object_r:custom_version_prop:s0
+
+# Penguin flight recorder
+sys.penguin.flightlog.                 u:object_r:penguin_flightlog_prop:s0
