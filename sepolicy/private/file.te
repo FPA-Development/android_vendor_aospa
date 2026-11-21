@@ -8,6 +8,7 @@ type penguin_flightlog_data_file, file_type, data_file_type, core_data_file_type
 type sysfs_penguin_reboot_mode, fs_type, sysfs_type;
 type proc_penguin_lockup, fs_type, proc_type;
 type proc_penguin_bootloader_log, fs_type, proc_type;
-# Bootloader minidump after a crash: armed through /sys/kernel/dload, read from rawdump
+# Bootloader minidump after a crash: armed through /sys/kernel/dload, read from rawdump; also the
+# printk switch that lets an oops log its registers and call trace to the console
 type sysfs_penguin_dload, fs_type, sysfs_type;
 type penguin_rawdump_block_device, dev_type;

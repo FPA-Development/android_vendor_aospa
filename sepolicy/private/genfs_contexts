@@ -14,3 +14,4 @@ genfscon proc /bootloader_log u:object_r:proc_penguin_bootloader_log:s0
 genfscon sysfs /kernel/dload/dload_mode u:object_r:sysfs_penguin_dload:s0
 genfscon sysfs /kernel/dload/emmc_dload u:object_r:sysfs_penguin_dload:s0
 genfscon sysfs /module/qcom_dload_mode/parameters/download_mode u:object_r:sysfs_penguin_dload:s0
+genfscon sysfs /module/printk/parameters/console_no_auto_verbose u:object_r:sysfs_penguin_dload:s0

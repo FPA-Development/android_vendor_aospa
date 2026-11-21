@@ -23,7 +23,9 @@ service penguin_flightlog_boot /system_ext/bin/penguin_flightlog --boot-capture
 # the reset, and panic on a lockup instead of hanging until the hardware watchdog resets the
 # phone with no log at all (the kernel command line has nosoftlockup). Where the bootloader
 # restarts with a hard reset anyway, which clears RAM and pstore with it, have it save a
-# minidump to the rawdump partition instead; the next boot capture files its kernel console.
+# minidump to the rawdump partition instead; the next boot capture files its kernel console and
+# whole kernel log. The kernel command line keeps an oops from raising the console log level
+# (printk.console_no_auto_verbose), which leaves the registers and call trace out of the console.
 # The bootloader resets the dload settings at every boot.
 on boot && property:persist.sys.penguin.flightlog=1
     mkdir /data/misc/penguin_flightlog 0700 system system
@@ -34,6 +36,7 @@ on boot && property:persist.sys.penguin.flightlog=1
     write /sys/module/qcom_dload_mode/parameters/download_mode 1
     write /sys/kernel/dload/dload_mode mini
     write /sys/kernel/dload/emmc_dload 1
+    write /sys/module/printk/parameters/console_no_auto_verbose N
     write /sys/kernel/reboot/mode warm
     write /proc/sys/kernel/soft_watchdog 1
     write /proc/sys/kernel/softlockup_panic 1
@@ -46,6 +49,7 @@ on property:sys.user.0.ce_available=true && property:persist.sys.penguin.flightl
     write /sys/module/qcom_dload_mode/parameters/download_mode 1
     write /sys/kernel/dload/dload_mode mini
     write /sys/kernel/dload/emmc_dload 1
+    write /sys/module/printk/parameters/console_no_auto_verbose N
     write /sys/kernel/reboot/mode warm
     write /proc/sys/kernel/soft_watchdog 1
     write /proc/sys/kernel/softlockup_panic 1
@@ -55,6 +59,7 @@ on property:sys.user.0.ce_available=true && property:persist.sys.penguin.flightl
 on property:persist.sys.penguin.flightlog=0 && property:sys.user.0.ce_available=true
     stop penguin_flightlog
     write /sys/kernel/dload/emmc_dload 0
+    write /sys/module/printk/parameters/console_no_auto_verbose Y
     write /sys/module/qcom_dload_mode/parameters/download_mode 0
     write /sys/kernel/reboot/mode cold
     write /proc/sys/kernel/softlockup_panic 0

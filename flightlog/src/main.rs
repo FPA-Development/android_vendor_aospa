@@ -68,10 +68,16 @@ const PSTORE: &str = "/data/misc/penguin_flightlog/pstore";
 /// /sys/kernel/dload. This phone always restarts with a hard reset, which clears RAM and so
 /// pstore, so this is the only place the kernel log of the crash itself survives.
 const RAWDUMP: &str = "/dev/block/by-name/rawdump";
-/// Minidump section with the kernel console (the ramoops console region, plain text).
+/// Minidump section with the kernel console (the ramoops console region, plain text). It only
+/// holds lines at the console log level, so it misses the registers and call trace of an oops.
 const RAWDUMP_CONSOLE: &str = "md_KCONSOLE.BIN";
-/// Hash of the last minidump console filed, so a dump is filed once and not again on every boot.
+/// Minidump sections with the kernel's printk ring: text blocks, descriptors and record headers.
+/// Together they give the whole kernel log at every level, as dmesg would have shown it.
+const RAWDUMP_PRINTK: [&str; 3] = ["md_KLOGBUF.BIN", "md_LOG_DESC.BIN", "md_LOG_INFO.BIN"];
+/// Identifies the last minidump filed, so a dump is filed once and not again on every boot. The
+/// version prefix changes when more is filed from a dump, which files the last dump once more.
 const RAWDUMP_SEEN: &str = "/data/misc/penguin_flightlog/rawdump_seen";
+const RAWDUMP_SEEN_VERSION: &str = "v2";
 /// Crash settings recorded with each boot, to tell from a report what the previous boot was armed with.
 const ARMED_SETTINGS: &[&str] = &[
     "/sys/kernel/dload/dload_mode",
@@ -80,6 +86,7 @@ const ARMED_SETTINGS: &[&str] = &[
     "/proc/sys/kernel/soft_watchdog",
     "/proc/sys/kernel/softlockup_panic",
     "/proc/sys/kernel/hardlockup_panic",
+    "/sys/module/printk/parameters/console_no_auto_verbose",
 ];
 
 /// System log tags worth keeping. App tags are left out on purpose.
@@ -799,6 +806,78 @@ fn ramoops_text(buf: &[u8]) -> Option<Vec<u8>> {
     Some(out)
 }
 
+const PRB_DESC: usize = 24; // state_var, text_blk_lpos.begin, text_blk_lpos.next
+const PRB_INFO: usize = 88; // seq, ts_nsec, text_len, facility, flags:5 level:3, caller_id, dev_info
+
+/// The kernel log from a printk ring (Linux 5.10 and later) as dmesg prints it, oldest first:
+/// "<level>[seconds][caller] text". Records still being written or already reused are left
+/// out, and a gap in the sequence numbers is marked.
+fn printk_ring_text(data: &[u8], desc: &[u8], info: &[u8]) -> Option<(Vec<u8>, usize)> {
+    let n = desc.len() / PRB_DESC;
+    if n == 0 || data.len() < 16 || info.len() < n * PRB_INFO {
+        return None;
+    }
+    let u64_at = |b: &[u8], o: usize| u64::from_le_bytes(b[o..o + 8].try_into().unwrap());
+    let size = data.len() as u64;
+    let mut records = Vec::new();
+    for i in 0..n {
+        let d = i * PRB_DESC;
+        let sv = u64_at(desc, d);
+        let state = sv >> 62; // 1 committed, 2 finalized
+        let id = sv & ((1 << 62) - 1);
+        if !(state == 1 || state == 2) || id % n as u64 != i as u64 {
+            continue;
+        }
+        let (begin, next) = (u64_at(desc, d + 8), u64_at(desc, d + 16));
+        let r = i * PRB_INFO;
+        let seq = u64_at(info, r);
+        let ts = u64_at(info, r + 8);
+        let len = u16::from_le_bytes(info[r + 16..r + 18].try_into().unwrap()) as usize;
+        let level = info[r + 19] >> 5;
+        let caller = u32::from_le_bytes(info[r + 20..r + 24].try_into().unwrap());
+        let text: &[u8] = if begin & 1 == 1 || len == 0 {
+            b"" // No data block (dropped or empty).
+        } else {
+            // A block that would cross the end of the ring is stored from its start instead.
+            let mut at = (begin % size) as usize;
+            if begin / size != next / size && next % size != 0 {
+                at = 0;
+            }
+            if at + 8 + len > data.len() || u64_at(data, at) != id {
+                continue; // Overwritten since.
+            }
+            &data[at + 8..at + 8 + len]
+        };
+        records.push((seq, ts, level, caller, text));
+    }
+    if records.is_empty() {
+        return None;
+    }
+    records.sort_by_key(|r| r.0);
+    let mut out = Vec::with_capacity(data.len());
+    let mut last: Option<u64> = None;
+    for (seq, ts, level, caller, text) in &records {
+        if let Some(l) = last {
+            if *seq > l + 1 {
+                out.extend_from_slice(format!("--- {} records lost ---\n", seq - l - 1).as_bytes());
+            }
+        }
+        last = Some(*seq);
+        let who = if caller & 0x8000_0000 != 0 {
+            format!("C{}", caller & 0x7fff_ffff)
+        } else {
+            format!("T{caller}")
+        };
+        let prefix = format!("<{level}>[{:5}.{:06}][{who:>6}] ", ts / 1_000_000_000, ts % 1_000_000_000 / 1000);
+        for line in text.split(|&c| c == b'\n') {
+            out.extend_from_slice(prefix.as_bytes());
+            out.extend_from_slice(line);
+            out.push(b'\n');
+        }
+    }
+    Some((out, records.len()))
+}
+
 fn fnv1a(data: &[u8]) -> u64 {
     data.iter().fold(0xcbf29ce484222325, |h, &b| (h ^ b as u64).wrapping_mul(0x100000001b3))
 }
@@ -810,8 +889,22 @@ fn read_at(f: &File, offset: u64, len: usize) -> std::io::Result<Vec<u8>> {
     Ok(buf)
 }
 
-/// Files the kernel console of a new minidump into `dir`. Only the section table and the
-/// console are read, and the partition is never written. Returns what happened, for `info`.
+/// The whole kernel log of the crashed boot from a minidump's printk ring, if it has one.
+fn rawdump_kmsg(f: &File, head: &[u8]) -> Result<(Vec<u8>, usize), String> {
+    let mut parts = Vec::new();
+    for name in RAWDUMP_PRINTK {
+        let sec = find_section(head, name).ok_or_else(|| format!("no {name}"))?;
+        if sec.size == 0 || sec.size > 16 << 20 {
+            return Err(format!("{name} size {}", sec.size));
+        }
+        parts.push(read_at(f, sec.offset, sec.size as usize).map_err(|e| e.to_string())?);
+    }
+    printk_ring_text(&parts[0], &parts[1], &parts[2]).ok_or_else(|| "printk ring unreadable".into())
+}
+
+/// Files the kernel console and the whole kernel log of a new minidump into `dir`. Only the
+/// section table and those sections are read, and the partition is never written. Returns what
+/// happened, for `info`.
 fn capture_rawdump(dir: &Path) -> String {
     let f = match File::open(RAWDUMP) {
         Ok(f) => f,
@@ -831,14 +924,22 @@ fn capture_rawdump(dir: &Path) -> String {
     };
     let Some(text) = ramoops_text(&raw) else { return "console unreadable".into() };
     let hash = format!("{:016x}", fnv1a(&text));
-    if read_trim(RAWDUMP_SEEN).as_deref() == Some(hash.as_str()) {
+    let seen = format!("{RAWDUMP_SEEN_VERSION} {hash}");
+    if read_trim(RAWDUMP_SEEN).as_deref() == Some(seen.as_str()) {
         return format!("seen {hash}");
     }
     if let Err(e) = write_scrubbed(&dir.join("rawdump_console.log"), &text) {
         return format!("error {e}");
     }
-    let _ = fs::write(RAWDUMP_SEEN, &hash);
-    format!("filed {hash} {} bytes", text.len())
+    let kmsg = match rawdump_kmsg(&f, &head) {
+        Ok((log, records)) => match write_scrubbed(&dir.join("rawdump_kmsg.log"), &log) {
+            Ok(()) => format!("kmsg {records} records"),
+            Err(e) => format!("kmsg error {e}"),
+        },
+        Err(e) => format!("kmsg {e}"),
+    };
+    let _ = fs::write(RAWDUMP_SEEN, &seen);
+    format!("filed {hash} {} bytes, {kmsg}", text.len())
 }
 
 fn epoch_now() -> u64 {
@@ -1044,6 +1145,49 @@ mod tests {
         assert_eq!(ramoops_text(&ring(3, 3, b"abc\0\0\0")).unwrap(), b"abc");
         assert!(ramoops_text(&ring(9, 6, b"abcdef")).is_none());
         assert!(ramoops_text(b"nope").is_none());
+    }
+
+    #[test]
+    fn decodes_the_printk_ring() {
+        // Ring of 64 bytes and 4 descriptors. Records 0..2 in order, record 3 still reserved.
+        let mut data = vec![0u8; 64];
+        let mut desc = vec![0u8; 4 * PRB_DESC];
+        let mut info = vec![0u8; 4 * PRB_INFO];
+        let mut put = |i: usize, state: u64, id: u64, begin: u64, next: u64, seq: u64, text: &[u8], level: u8, caller: u32| {
+            let d = i * PRB_DESC;
+            desc[d..d + 8].copy_from_slice(&((state << 62) | id).to_le_bytes());
+            desc[d + 8..d + 16].copy_from_slice(&begin.to_le_bytes());
+            desc[d + 16..d + 24].copy_from_slice(&next.to_le_bytes());
+            let r = i * PRB_INFO;
+            info[r..r + 8].copy_from_slice(&seq.to_le_bytes());
+            info[r + 8..r + 16].copy_from_slice(&(seq * 1_500_000_000).to_le_bytes());
+            info[r + 16..r + 18].copy_from_slice(&(text.len() as u16).to_le_bytes());
+            info[r + 19] = level << 5;
+            info[r + 20..r + 24].copy_from_slice(&caller.to_le_bytes());
+        };
+        // Record 0 at 48 (first lap), records 1 and 2 at 0 and 16 (second lap, 64 + offset).
+        put(0, 2, 4, 48, 64, 0, b"oldest", 6, 1);
+        put(1, 2, 5, 64, 80, 1, b"second", 4, 0x8000_0002);
+        put(2, 1, 6, 80, 96, 2, b"a\nb", 0, 7);
+        put(3, 0, 3, 0, 0, 9, b"", 6, 0);
+        data[48..56].copy_from_slice(&4u64.to_le_bytes());
+        data[56..62].copy_from_slice(b"oldest");
+        data[0..8].copy_from_slice(&5u64.to_le_bytes());
+        data[8..14].copy_from_slice(b"second");
+        data[16..24].copy_from_slice(&6u64.to_le_bytes());
+        data[24..27].copy_from_slice(b"a\nb");
+        let (text, n) = printk_ring_text(&data, &desc, &info).unwrap();
+        assert_eq!(n, 3);
+        assert_eq!(
+            String::from_utf8(text).unwrap(),
+            "<6>[    0.000000][    T1] oldest\n<4>[    1.500000][    C2] second\n<0>[    3.000000][    T7] a\n<0>[    3.000000][    T7] b\n"
+        );
+        // A block overwritten since (id no longer matches) is dropped, and the gap is marked.
+        data[0..8].copy_from_slice(&99u64.to_le_bytes());
+        let (text, n) = printk_ring_text(&data, &desc, &info).unwrap();
+        assert_eq!(n, 2);
+        assert!(String::from_utf8(text).unwrap().contains("--- 1 records lost ---\n"));
+        assert!(printk_ring_text(&data, &[], &info).is_none());
     }
 
     #[test]
