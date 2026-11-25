@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+     SPDX-FileCopyrightText: Paranoid Android
+     SPDX-License-Identifier: Apache-2.0
+-->
+<manifest>
+  <include name="../platforms/sun.xml" />
+
+  <!-- Drop AOSPA's prebuilt kernel_definitions linkfile so inline kernel.mk is used -->
+  <remove-project name="AOSPA/android_kernel_build" />
+
+  <!-- PenguinOS lineage compat shims (libtinyxml2-v36, libaudioutils_shim, libprocessgroup_shim, etc.) -->
+  <remove-project name="AOSPA/android_hardware_lineage_compat" />
+  <project path="hardware/lineage/compat" name="Project-PenguinOS/hardware_lineage_compat" remote="penguin" revision="celerity" />
+
+  <!-- SM8750 (pakala) IPA config manager -->
+  <remove-project name="AOSPA/android_vendor_qcom_opensource_data-ipa-cfg-mgr" />
+  <project path="vendor/qcom/opensource/data-ipa-cfg-mgr" name="Project-PenguinOS/vendor_qcom_opensource_data-ipa-cfg-mgr" remote="penguin" revision="celerity" />
+
+  <!-- LineageOS QTI vibrator HAL with qti_vibrator effect_lib & use_effect_stream support -->
+  <remove-project name="AOSPA/android_vendor_qcom-opensource_vibrator" />
+  <project path="vendor/qcom/opensource/vibrator" name="LineageOS/android_vendor_qcom_opensource_vibrator" remote="github" revision="lineage-24.0" />
+
+  <!-- Device Dependencies -->
+  <project path="device/xiaomi/annibale" name="FPA-Development/android_device_xiaomi_annibale" remote="github" revision="celerity" />
+  <project path="hardware/xiaomi" name="FPA-Development/android_hardware_xiaomi" remote="github" revision="celerity" />
+  <project path="kernel/xiaomi/sm8750" name="FPA-Development/android_kernel_xiaomi_sm8750" remote="github" revision="lineage-24.0" />
+  <project path="kernel/xiaomi/sm8750-devicetrees" name="FPA-Development/android_kernel_xiaomi_sm8750-devicetrees" remote="github" revision="lineage-24.0" />
+  <project path="kernel/xiaomi/sm8750-modules" name="FPA-Development/android_kernel_xiaomi_sm8750-modules" remote="github" revision="lineage-24.0" />
+
+  <!-- Re-extract vendor/xiaomi/annibale with device/xiaomi/annibale/extract-files.py,
+       or uncomment below once pushed to your vendor repository:
+  <project path="vendor/xiaomi/annibale" name="FPA-Development/proprietary_vendor_xiaomi_annibale" remote="github" revision="celerity" />
+  -->
+
+  <!-- Inline kernel build tools -->
+  <project path="prebuilts/kernel-build-tools" name="kernel/prebuilts/build-tools" remote="aosp" revision="main" clone-depth="1" />
+  <project path="lineage/scripts" name="LineageOS/scripts" remote="github" revision="main" clone-depth="1" />
+  <project path="prebuilts/tools-lineage" name="LineageOS/android_prebuilts_tools-lineage" remote="github" revision="lineage-24.0" clone-depth="1" />
+
+  <!-- Dolby -->
+  <project path="packages/apps/LunarisDolby" name="unmoved21/packages_apps_LunarisDolby" remote="github" revision="16.0" />
+</manifest>
