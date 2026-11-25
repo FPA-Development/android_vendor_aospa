@@ -15,6 +15,9 @@
   <!-- LineageOS QTI vibrator HAL with qti_vibrator effect_lib & use_effect_stream support -->
   <project path="vendor/qcom/opensource/vibrator" name="LineageOS/android_vendor_qcom_opensource_vibrator" remote="github" revision="lineage-24.0" />
 
+  <!-- Trimmed UDFPS resources (UdfpsIcons + UdfpsAnimations only; upstream vendor_addons collides with vendor/aospa sdk & overlays) -->
+  <project path="vendor/udfps-resources" name="FPA-Development/android_vendor_addons" remote="github" revision="celerity" />
+
   <!-- Device Dependencies -->
   <project path="device/xiaomi/annibale" name="FPA-Development/android_device_xiaomi_annibale" remote="github" revision="celerity" />
   <project path="hardware/xiaomi" name="FPA-Development/android_hardware_xiaomi" remote="github" revision="celerity" />
