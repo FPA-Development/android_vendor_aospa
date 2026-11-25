@@ -58,7 +58,7 @@ cc_library_headers {
 }
 
 cc_library_headers {
-    name: "libubwcp_headers",
+    name: "qti_ubwcp_kernel_headers",
     vendor_available: true,
     recovery_available: true,
     generated_headers: [
