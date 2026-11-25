@@ -6,19 +6,13 @@
 <manifest>
   <include name="../platforms/sun.xml" />
 
-  <!-- Drop AOSPA's prebuilt kernel_definitions linkfile so inline kernel.mk is used -->
-  <remove-project name="AOSPA/android_kernel_build" />
+  <!-- Re-declare device/qcom/kernelscripts without the kernel_definitions.mk linkfile so inline kernel.mk is used -->
+  <project path="device/qcom/kernelscripts" name="AOSPA/android_kernel_build" remote="aospa" />
 
   <!-- PenguinOS lineage compat shims (libtinyxml2-v36, libaudioutils_shim, libprocessgroup_shim, etc.) -->
-  <remove-project name="AOSPA/android_hardware_lineage_compat" />
   <project path="hardware/lineage/compat" name="Project-PenguinOS/hardware_lineage_compat" remote="penguin" revision="celerity" />
 
-  <!-- SM8750 (pakala) IPA config manager -->
-  <remove-project name="AOSPA/android_vendor_qcom_opensource_data-ipa-cfg-mgr" />
-  <project path="vendor/qcom/opensource/data-ipa-cfg-mgr" name="Project-PenguinOS/vendor_qcom_opensource_data-ipa-cfg-mgr" remote="penguin" revision="celerity" />
-
   <!-- LineageOS QTI vibrator HAL with qti_vibrator effect_lib & use_effect_stream support -->
-  <remove-project name="AOSPA/android_vendor_qcom-opensource_vibrator" />
   <project path="vendor/qcom/opensource/vibrator" name="LineageOS/android_vendor_qcom_opensource_vibrator" remote="github" revision="lineage-24.0" />
 
   <!-- Device Dependencies -->
