@@ -35,6 +35,7 @@
   <project path="lineage/scripts" name="LineageOS/scripts" remote="github" revision="main" clone-depth="1" />
   <project path="prebuilts/tools-lineage" name="LineageOS/android_prebuilts_tools-lineage" remote="github" revision="lineage-24.0" clone-depth="1" />
 
-  <!-- Dolby -->
-  <project path="packages/apps/LunarisDolby" name="unmoved21/packages_apps_LunarisDolby" remote="github" revision="16.0" />
+  <!-- Extras -->
+  <project path="packages/apps/LunarisDolby" name="FPA-Development/packages_apps_LunarisDolby" remote="github" revision="celerity" />
+  <project path="packages/apps/SMGTools" name="FPA-Development/packages_apps_SMGTools" remote="github" revision="celerity" />
 </manifest>
