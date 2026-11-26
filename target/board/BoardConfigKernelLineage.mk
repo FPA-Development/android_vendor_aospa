@@ -71,6 +71,20 @@ ifneq ($(KERNEL_VERSION),)
     endif
 endif
 
+# Resolve default AOSP Clang and Rust prebuilt versions if not exported by envsetup.sh
+LLVM_AOSP_PREBUILTS_VERSION ?= $(strip $(RELEASE_BUILD_CLANG_VERSION))
+ifeq ($(LLVM_AOSP_PREBUILTS_VERSION),)
+    LLVM_AOSP_PREBUILTS_VERSION := $(shell $(BUILD_TOP)/build/soong/scripts/get_clang_version.py 2>/dev/null)
+endif
+ifeq ($(wildcard $(BUILD_TOP)/prebuilts/clang/host/$(HOST_PREBUILT_TAG)/$(LLVM_AOSP_PREBUILTS_VERSION)/bin/clang),)
+    LLVM_AOSP_PREBUILTS_VERSION := $(notdir $(lastword $(sort $(wildcard $(BUILD_TOP)/prebuilts/clang/host/$(HOST_PREBUILT_TAG)/clang-r*))))
+endif
+
+RUST_AOSP_PREBUILTS_VERSION ?= $(shell grep 'RustDefaultVersion =' $(BUILD_TOP)/build/soong/rust/config/global.go 2>/dev/null | awk '{print $$3}' | tr -d '"')
+ifeq ($(wildcard $(BUILD_TOP)/prebuilts/rust-toolchain/$(HOST_PREBUILT_TAG)/$(RUST_AOSP_PREBUILTS_VERSION)/bin/rustc),)
+    RUST_AOSP_PREBUILTS_VERSION := $(notdir $(lastword $(sort $(wildcard $(BUILD_TOP)/prebuilts/rust-toolchain/$(HOST_PREBUILT_TAG)/1.*))))
+endif
+
 ifneq ($(TARGET_KERNEL_CLANG_VERSION),)
     KERNEL_CLANG_VERSION := clang-$(TARGET_KERNEL_CLANG_VERSION)
 else
