@@ -12,7 +12,7 @@ SPDX-License-Identifier: Apache-2.0
 import subprocess
 import sys
 from pathlib import Path
-from shutil import rmtree
+from shutil import copyfile, rmtree
 from xml.etree.ElementTree import (
     Comment,
     Element,
@@ -27,7 +27,21 @@ EXTRA_MANIFESTS_DIR = Path(".repo/manifests")
 UPSTREAM_MANIFEST_PATH = Path(".repo/manifest.xml")
 LOCAL_MANIFESTS_DIR = Path(".repo/local_manifests")
 BARISTA_BLEND_PATH = LOCAL_MANIFESTS_DIR / "baristablend.xml"
+BARISTA_PRODUCTS_DIR = Path("vendor/aospa/products")
 BARISTA_BEANS_PATH = "vendor/aospa/products/{}/beans.xml"
+
+
+def sync_kernel_headers(device: str) -> None:
+    """Activate only the selected device's root-namespace kernel-headers Android.bp."""
+    if not BARISTA_PRODUCTS_DIR.is_dir():
+        return
+
+    for template in BARISTA_PRODUCTS_DIR.glob("*/kernel-headers/Android.bp.in"):
+        active_bp = template.with_name("Android.bp")
+        if template.parents[1].name == device:
+            copyfile(template, active_bp)
+        elif active_bp.exists() or active_bp.is_symlink():
+            active_bp.unlink()
 
 
 def sort_manifest(manifest: Element) -> None:
@@ -124,6 +138,8 @@ def main():
     skip_sync = False
     if len(sys.argv) > 2:
         skip_sync = sys.argv[2].lower() == "true"
+
+    sync_kernel_headers(device)
 
     try:
         projects = grind_beans(device)

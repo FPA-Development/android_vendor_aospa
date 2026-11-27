@@ -6,3 +6,6 @@ prebuilt/
 
 # AOSPA translations
 translations/
+
+# Device-scoped inline kernel-headers (activated by barista.py)
+products/*/kernel-headers/Android.bp

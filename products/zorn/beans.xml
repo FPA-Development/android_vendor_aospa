@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+     SPDX-FileCopyrightText: Paranoid Android
+     SPDX-License-Identifier: Apache-2.0
+-->
+<manifest>
+  <include name="../platforms/pineapple.xml" />
+
+  <!-- Re-declare device/qcom/kernelscripts without the kernel_definitions.mk linkfile so inline kernel.mk is used -->
+  <project path="device/qcom/kernelscripts" name="AOSPA/android_kernel_build" remote="aospa" />
+
+  <!-- Re-declare audio primary-hal without the audio_vendor_product.mk linkfile so qti-dlkm.mk does not pull source audio.primary.pineapple / libagm / libar-pal over Xiaomi prebuilts -->
+  <project path="vendor/qcom/opensource/audio-hal/primary-hal" name="AOSPA/android_hardware_qcom_audio" remote="aospa" revision="calcite-8650" />
+
+  <!-- PenguinOS lineage compat shims (libtinyxml2-v34, libaudioroute-v34, libbinder_shim, libcodec2_shim, libhidlbase_shim, libprocessgroup_shim) -->
+  <project path="hardware/lineage/compat" name="Project-PenguinOS/hardware_lineage_compat" remote="penguin" revision="celerity" />
+
+  <!-- LineageOS QTI vibrator HAL with qti_vibrator effect_lib & use_effect_stream support -->
+  <project path="vendor/qcom/opensource/vibrator" name="LineageOS/android_vendor_qcom_opensource_vibrator" remote="github" revision="lineage-24.0" />
+
+  <!-- Trimmed UDFPS resources (UdfpsIcons + UdfpsAnimations only; upstream vendor_addons collides with vendor/aospa sdk & overlays) -->
+  <project path="vendor/udfps-resources" name="FPA-Development/android_vendor_addons" remote="github" revision="celerity" />
+
+  <!-- Device Dependencies -->
+  <project path="device/xiaomi/zorn" name="FPA-Development/android_device_xiaomi_zorn" remote="github" revision="celerity" />
+  <project path="device/xiaomi/sm8650-common" name="FPA-Development/android_device_xiaomi_sm8650-common" remote="github" revision="celerity" />
+  <project path="device/xiaomi/zorn-miuicamera" name="FPA-Development/android_device_xiaomi_zorn-miuicamera" remote="github" revision="lineage-24.0" />
+  <project path="hardware/xiaomi" name="LineageOS/android_hardware_xiaomi" remote="github" revision="lineage-24.0" />
+  <project path="kernel/xiaomi/sm8650" name="FPA-Development/android_kernel_xiaomi_sm8650" remote="github" revision="lineage-24.0" />
+  <project path="kernel/xiaomi/sm8650-devicetrees" name="FPA-Development/android_kernel_xiaomi_sm8650-devicetrees" remote="github" revision="lineage-24.0" />
+  <project path="kernel/xiaomi/sm8650-modules" name="FPA-Development/android_kernel_xiaomi_sm8650-modules" remote="github" revision="lineage-24.0" />
+
+  <!-- Re-extract vendor/xiaomi/{zorn,sm8650-common,zorn-miuicamera} with extract-files.py,
+       or uncomment below once pushed to your vendor repositories:
+  <project path="vendor/xiaomi/zorn" name="FPA-Development/proprietary_vendor_xiaomi_zorn" remote="github" revision="celerity" />
+  <project path="vendor/xiaomi/sm8650-common" name="FPA-Development/proprietary_vendor_xiaomi_sm8650-common" remote="github" revision="celerity" />
+  <project path="vendor/xiaomi/zorn-miuicamera" name="FPA-Development/proprietary_vendor_xiaomi_zorn-miuicamera" remote="github" revision="lineage-24.0" />
+  -->
+
+  <!-- Inline kernel build tools -->
+  <project path="prebuilts/kernel-build-tools" name="kernel/prebuilts/build-tools" remote="aosp" revision="main" clone-depth="1" />
+  <project path="lineage/scripts" name="LineageOS/scripts" remote="github" revision="main" clone-depth="1" />
+  <project path="prebuilts/tools-lineage" name="LineageOS/android_prebuilts_tools-lineage" remote="github" revision="lineage-24.0" clone-depth="1" />
+
+  <!-- Extras -->
+  <project path="packages/apps/LunarisDolby" name="FPA-Development/packages_apps_LunarisDolby" remote="github" revision="celerity" />
+  <project path="packages/apps/SMGTools" name="FPA-Development/packages_apps_SMGTools" remote="github" revision="celerity" />
+</manifest>
